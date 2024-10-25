@@ -48,5 +48,5 @@ pub trait Block {
     fn get_light(&self) -> &[u8; 4];
     fn get_sunlight_intensity(&self) -> u8;
 
-
+    
 }

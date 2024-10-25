@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use cached::proc_macro::cached;
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector3};
+use noise::Perlin;
 use stopwatch::Stopwatch;
+use wgpu::util::DeviceExt;
 
-use crate::world::worldgen::{generate_surface_height, is_cave};
+use crate::world::{blocks::{air_block::AirBlock, grass_block::GrassBlock}, worldgen::{generate_surface_height, is_cave}};
 
 use super::block::BlockType;
 
@@ -54,79 +56,73 @@ impl Chunk {
                         let block: BlockType =
                         if is_cave {
                             Box::new(AirBlock::new(
-                                Vector3::new(x, y as u32, z), 
-                                Vector3::new(abs_x, abs_y, abs_z))
-                            )
+                                Vector3::new(x, y as u32, z)
+                            ))
                         }
                         else if abs_y == floor_level && abs_y < 100 {
                             Box::new(GrassBlock::new(
-                                Vector3::new(x, y as u32, z), 
-                                Vector3::new(abs_x, abs_y, abs_z))
-                            )
+                                Vector3::new(x, y as u32, z)
+                            ))
                         }
                         else if abs_y + 3 < floor_level || (abs_y == floor_level && abs_y >= 100) {
-                            Box::new(StoneBlock::new(
-                                Vector3::new(x, y as u32, z), 
-                                Vector3::new(abs_x, abs_y, abs_z))
-                            )
+                            Box::new(GrassBlock::new(
+                                Vector3::new(x, y as u32, z)
+                            ))
                         }
                         else if abs_y < floor_level {
                             if abs_y < 100 {
-                                Box::new(DirtBlock::new(
-                                    Vector3::new(x, y as u32, z), 
-                                    Vector3::new(abs_x, abs_y, abs_z))
-                                )
+                                Box::new(GrassBlock::new(
+                                    Vector3::new(x, y as u32, z)
+                                ))
                             }
                             else {
-                                Box::new(StoneBlock::new(
-                                    Vector3::new(x, y as u32, z), 
-                                    Vector3::new(abs_x, abs_y, abs_z))
-                                )
+                                Box::new(GrassBlock::new(
+                                    Vector3::new(x, y as u32, z)
+                                ))
                             }
                         }
                         else {
                             Box::new(AirBlock::new(
-                                Vector3::new(x, y as u32, z), 
-                                Vector3::new(abs_x, abs_y, abs_z))
-                            )
+                                Vector3::new(x, y as u32, z)
+                            ))
                         };
 
                         if abs_y == floor_level + 1 {
-                            let should_tree = density_map_plane(noisegen, abs_x, abs_z);
+                            // let should_tree = density_map_plane(noisegen, abs_x, abs_z);
 
-                            if should_tree {
-                                let mut blocks = get_blocks_for_structure_at_point("tree", 0, Vector3::new(abs_x, abs_y, abs_z));
+                            // if should_tree {
+                            //     let mut blocks = get_blocks_for_structure_at_point("tree", 0, Vector3::new(abs_x, abs_y, abs_z));
 
-                                loop {
+                            //     loop {
 
-                                    let nblock = blocks.pop();
+                            //         let nblock = blocks.pop();
 
-                                    if nblock.is_none() {break}
+                            //         if nblock.is_none() {break}
 
-                                    let block = nblock.unwrap();
+                            //         let block = nblock.unwrap();
 
-                                    let abs_dived = block.get_absolute_position().map(|v| {
-                                        v.div_euclid(16)
-                                    });
+                            //         let abs_dived = block.get_absolute_position().map(|v| {
+                            //             v.div_euclid(16)
+                            //         });
                                     
-                                    if abs_dived.x != position.x || abs_dived.y != position.y {
-                                        let xz = xz_to_index(abs_dived.x, abs_dived.z);
-                                        if extra_blocks.contains_key(&xz) {
-                                            let mutlist = extra_blocks.get_mut(&xz).unwrap();
+                            //         if abs_dived.x != position.x || abs_dived.y != position.y {
+                            //             let xz = xz_to_index(abs_dived.x, abs_dived.z);
+                            //             if extra_blocks.contains_key(&xz) {
+                            //                 let mutlist = extra_blocks.get_mut(&xz).unwrap();
 
-                                            mutlist.push(block);
+                            //                 mutlist.push(block);
 
-                                        }
-                                        else {
-                                            let list = vec![block];
-                                            extra_blocks.insert(xz, list);
-                                        }
-                                    }
-                                }
+                            //             }
+                            //             else {
+                            //                 let list = vec![block];
+                            //                 extra_blocks.insert(xz, list);
+                            //             }
+                            //         }
+                            //     }
 
-                                extra_blocks_same.extend(blocks);
+                            //     extra_blocks_same.extend(blocks);
 
-                            }
+                            // }
                         }
 
                         uninit[local_xyz_to_index(x, y as u32, z) as usize].write(block);
@@ -141,31 +137,31 @@ impl Chunk {
 
         let k = xz_to_index(position.x, position.y);
 
-        if extra_blocks.contains_key(&k) {
-            let new_blocks = extra_blocks.remove(&k).unwrap();
+        // if extra_blocks.contains_key(&k) {
+        //     let new_blocks = extra_blocks.remove(&k).unwrap();
 
-            for block in new_blocks {
-                if block.get_block() == Blocks::AIR {continue};
+        //     for block in new_blocks {
+        //         if block.get_block() == Blocks::AIR {continue};
 
-                let p = block.get_absolute_position();
+        //         let p = block.get_absolute_position();
 
-                if p.x.div_euclid(16) == position.x && p.z.div_euclid(16) == position.y {
-                    let rel = block.get_relative_position();
-                    blocks[p.y.div_euclid(16) as usize][local_xyz_to_index(rel.x, rel.y, rel.z) as usize] = block;
-                }
-            }
-        }
+        //         if p.x.div_euclid(16) == position.x && p.z.div_euclid(16) == position.y {
+        //             let rel = block.get_relative_position();
+        //             blocks[p.y.div_euclid(16) as usize][local_xyz_to_index(rel.x, rel.y, rel.z) as usize] = block;
+        //         }
+        //     }
+        // }
 
-        for block in extra_blocks_same {
-            if block.get_block() == Blocks::AIR {continue};
+        // for block in extra_blocks_same {
+        //     if block.get_block() == Blocks::AIR {continue};
 
-            let p = block.get_absolute_position();
+        //     let p = block.get_absolute_position();
 
-            if p.x.div_euclid(16) == position.x && p.z.div_euclid(16) == position.y {
-                let rel = block.get_relative_position();
-                blocks[p.y.div_euclid(16) as usize][local_xyz_to_index(rel.x, rel.y, rel.z) as usize] = block;
-            }
-        }
+        //     if p.x.div_euclid(16) == position.x && p.z.div_euclid(16) == position.y {
+        //         let rel = block.get_relative_position();
+        //         blocks[p.y.div_euclid(16) as usize][local_xyz_to_index(rel.x, rel.y, rel.z) as usize] = block;
+        //     }
+        // }
 
         
 
@@ -177,18 +173,18 @@ impl Chunk {
         }
     }
 
-    pub fn set_slice_vertex_buffers(&mut self, device: &wgpu::Device) {
-        let slice_vertex_buffers = (0..16).map(|y| {
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("Chunk Data Buffer")),
-                contents: bytemuck::cast_slice(&[ChunkDataVertex {
-                    position_sliced: [self.position.x, y, self.position.y]
-                }]),
-                usage: wgpu::BufferUsages::VERTEX,
-            })
-        }).collect::<Vec<wgpu::Buffer>>();
-        self.slice_vertex_buffers = slice_vertex_buffers;
-    }
+    // pub fn set_slice_vertex_buffers(&mut self, device: &wgpu::Device) {
+    //     let slice_vertex_buffers = (0..16).map(|y| {
+    //         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    //             label: Some(&format!("Chunk Data Buffer")),
+    //             contents: bytemuck::cast_slice(&[ChunkDataVertex {
+    //                 position_sliced: [self.position.x, y, self.position.y]
+    //             }]),
+    //             usage: wgpu::BufferUsages::VERTEX,
+    //         })
+    //     }).collect::<Vec<wgpu::Buffer>>();
+    //     self.slice_vertex_buffers = slice_vertex_buffers;
+    // }
 
     pub fn get_block_at(&self, x: u32, y: u32, z: u32) -> &BlockType {
         &self.grid[(y / 16) as usize][local_xyz_to_index(x % 16, y % 16, z % 16) as usize]
