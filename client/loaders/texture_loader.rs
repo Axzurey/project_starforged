@@ -94,7 +94,7 @@ pub fn preload_textures(
     }
 }
 
-pub fn initialize_load_textures(device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
+pub fn initialize_load_textures(device: &Arc<wgpu::Device>, queue: &Arc<wgpu::Queue>, format: wgpu::TextureFormat) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
     
     let mut texture_indices = TEXTURE_INDICES.lock().unwrap();
 

@@ -16,6 +16,7 @@ impl ApplicationHandler for GameDisplay {
         self.window = Some(Arc::new(event_loop.create_window(Window::default_attributes()).unwrap()));
 
         let mut gamewindow = GameWindow::new(self.window.clone().unwrap()).block_on();
+        gamewindow.load_textures();
     }
 
     fn window_event(

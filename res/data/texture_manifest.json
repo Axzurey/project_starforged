@@ -1,0 +1,44 @@
+[
+    {
+        "path": "textures/dirt.png",
+        "alias": "dirt",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/grass_side.png",
+        "alias": "grass-side",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/grass_top.png",
+        "alias": "grass-top",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/stone.png",
+        "alias": "stone",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/log.png",
+        "alias": "log",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/log_top.png",
+        "alias": "log_top",
+        "type": "diffuse",
+        "filter": "nearest"
+    },
+    {
+        "path": "textures/leaf.png",
+        "alias": "leaf",
+        "type": "diffuse",
+        "filter": "nearest"
+    }
+]

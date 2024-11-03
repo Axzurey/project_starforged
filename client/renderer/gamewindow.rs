@@ -3,7 +3,7 @@ use std::sync::Arc;
 use nalgebra::Point3;
 use winit::window::Window;
 
-use crate::view::camera::Camera;
+use crate::{loaders::texture_loader::initialize_load_textures, view::camera::Camera};
 
 use super::gamerenderer::GameRenderer;
 
@@ -116,5 +116,9 @@ impl <'a> GameWindow<'a> {
             camera_bindgroup_layout,
             camera
         }
+    }
+
+    pub fn load_textures(&self) {
+        initialize_load_textures(&self.device, &self.queue, self.surface_format);
     }
 }

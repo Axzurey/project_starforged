@@ -5,6 +5,7 @@ mod renderer;
 mod gamedisplay;
 mod view;
 mod loaders;
+mod network;
 
 pub fn main() {
 
