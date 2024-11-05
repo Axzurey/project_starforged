@@ -4,7 +4,6 @@ use cached::proc_macro::cached;
 use nalgebra::{Vector2, Vector3};
 use noise::Perlin;
 use stopwatch::Stopwatch;
-use wgpu::util::DeviceExt;
 
 use crate::world::{blocks::{air_block::AirBlock, grass_block::GrassBlock}, worldgen::{generate_surface_height, is_cave}};
 
@@ -26,11 +25,23 @@ pub fn xz_to_index(x: i32, z: i32) -> u32 {
 pub type ChunkGridType = Vec<Vec<BlockType>>;
 
 pub struct Chunk {
-    position: Vector2<i32>,
-    grid: ChunkGridType
+    pub position: Vector2<i32>,
+    pub grid: ChunkGridType
+}
+
+pub enum ChunkState {
+    PreMesh,
+    Mesh,
+    Ready
 }
 
 impl Chunk {
+    pub fn from_blocks(position: Vector2<i32>, grid: ChunkGridType) -> Self {
+        Self {
+            position,
+            grid
+        }
+    }
     pub fn new(position: Vector2<i32>, noisegen: Perlin, extra_blocks: &mut HashMap<u32, Vec<BlockType>>) -> Self {
         let t = Stopwatch::start_new();
 

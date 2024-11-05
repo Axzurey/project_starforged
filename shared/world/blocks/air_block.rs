@@ -35,6 +35,10 @@ impl Block for AirBlock {
         false
     }
 
+    fn does_not_render(&self) -> bool {
+        true
+    }
+
     fn get_surface_texture_indices(&self, face: crate::world::block::BlockFace) -> (crate::world::block::BlockFaceTextureConfiguration, crate::world::block::BlockFaceTextureConfiguration, crate::world::block::BlockFaceTextureConfiguration) {
         todo!()
     }

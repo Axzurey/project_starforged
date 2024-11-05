@@ -36,6 +36,9 @@ pub trait Block {
     fn has_partial_transparency(&self) -> bool;
 
     fn include_in_greedy(&self) -> bool;
+    fn does_not_render(&self) -> bool {
+        false
+    }
 
     fn get_surface_texture_indices(&self, face: BlockFace) -> (BlockFaceTextureConfiguration, BlockFaceTextureConfiguration, BlockFaceTextureConfiguration);
 

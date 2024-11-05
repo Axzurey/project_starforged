@@ -1,11 +1,13 @@
 use gamedisplay::GameDisplay;
 use winit::event_loop::EventLoop;
+use shared::world as shared_world;
 
 mod renderer;
 mod gamedisplay;
 mod view;
 mod loaders;
 mod network;
+mod world;
 
 pub fn main() {
 
@@ -14,5 +16,6 @@ pub fn main() {
 
     let mut display = GameDisplay::default();
     event_loop.run_app(&mut display);
+
 
 }
