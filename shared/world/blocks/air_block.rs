@@ -3,15 +3,15 @@ use nalgebra::Vector3;
 use crate::world::block::Block;
 
 pub struct AirBlock {
-    relative_position: Vector3<u32>,
+    absolute_position: Vector3<i32>,
     orientation: u8,
     light: [u8; 4]
 }
 
 impl AirBlock {
-    pub fn new(relative_position: Vector3<u32>) -> Self {
+    pub fn new(absolute_position: Vector3<i32>) -> Self {
         Self {
-            relative_position,
+            absolute_position,
             light: [0, 0, 0, 0],
             orientation: 0
         }
@@ -19,8 +19,11 @@ impl AirBlock {
 }
 
 impl Block for AirBlock {
-    fn get_relative_position(&self) -> Vector3<u32> {
-        self.relative_position
+    fn get_block(&self) -> crate::world::block::Blocks {
+        crate::world::block::Blocks::AIR
+    }
+    fn get_absolute_position(&self) -> Vector3<i32> {
+        self.absolute_position
     }
 
     fn get_orientation(&self) -> u8 {

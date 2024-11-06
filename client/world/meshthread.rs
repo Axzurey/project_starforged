@@ -6,6 +6,8 @@ use wgpu::util::DeviceExt;
 
 use crate::renderer::renderctx::Renderctx;
 
+use super::mesher::mesh_slice_arrayed;
+
 pub fn spawn_chunk_meshing_worker_thread(
     id: usize,
     send_back: Sender<(usize, i32, i32, u32, ((wgpu::Buffer, wgpu::Buffer, u32), (wgpu::Buffer, wgpu::Buffer, u32)))>

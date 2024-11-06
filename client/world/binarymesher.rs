@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet, VecDeque}, sync::Arc};
 use nalgebra::Vector3;
 use shared::world::{block::{BlockFace, BlockType}, chunk::{xz_to_index, Chunk}};
 
-use crate::{renderer::surfacevertex::SurfaceVertex, world::chunkmanager::get_block_at_absolute};
+use crate::{renderer::surfacevertex::{calculate_illumination_bytes, SurfaceVertex}, world::chunkmanager::get_block_at_absolute};
 
 use super::depthsort::Quad;
 
@@ -188,7 +188,6 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                         2 | 3 => Vector3::new(y as i32, z as i32, x as i32),
                         _ => Vector3::new(x as i32, z as i32, y as i32),
                     };
-                    
 
                     let current_voxel = chunk.get_block_at(voxel_pos.x as u32, voxel_pos.y as u32 + y_slice * 16, voxel_pos.z as u32);
                     
@@ -262,7 +261,7 @@ impl GreedyQuad {
 
         let illumination = get_block_at_absolute(nextdoorpos.x, nextdoorpos.y, nextdoorpos.z, chunks).map_or(0, |v| calculate_illumination_bytes(&v));
 
-        let tex = block.get_surface_textures(face_dir);
+        let tex = block.get_surface_texture_indices(face_dir);
 
         let v1 = SurfaceVertex::from_position(
             face_dir.world_to_sample(axis as i32, self.x as i32, self.y as i32), face_dir, 0, tex, illumination

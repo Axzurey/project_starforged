@@ -2,6 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use shared::world::{block::BlockType, chunk::{xz_to_index, Chunk}};
 
+use super::chunkdraw::ChunkDraw;
+
 pub fn get_block_at_absolute(x: i32, y: i32, z: i32, chunks: &HashMap<u32, Arc<Chunk>>) -> Option<&BlockType> {
     if y < 0 || y > 255 {return None};
     let chunk_x = x.div_euclid(16);
@@ -11,7 +13,7 @@ pub fn get_block_at_absolute(x: i32, y: i32, z: i32, chunks: &HashMap<u32, Arc<C
 }
 
 pub struct ChunkManager {
-    chunks: HashMap<u32, Arc<Chunk>>
+    pub chunks: HashMap<u32, ChunkDraw>
 }
 
 impl ChunkManager {

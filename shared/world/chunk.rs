@@ -29,6 +29,7 @@ pub struct Chunk {
     pub grid: ChunkGridType
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ChunkState {
     PreMesh,
     Mesh,
@@ -67,34 +68,34 @@ impl Chunk {
                         let block: BlockType =
                         if is_cave {
                             Box::new(AirBlock::new(
-                                Vector3::new(x, y as u32, z)
+                                Vector3::new(abs_x, abs_y, abs_z)
                             ))
                         }
                         else if abs_y == floor_level && abs_y < 100 {
                             Box::new(GrassBlock::new(
-                                Vector3::new(x, y as u32, z)
+                                Vector3::new(abs_x, abs_y, abs_z)
                             ))
                         }
                         else if abs_y + 3 < floor_level || (abs_y == floor_level && abs_y >= 100) {
                             Box::new(GrassBlock::new(
-                                Vector3::new(x, y as u32, z)
+                                Vector3::new(abs_x, abs_y, abs_z)
                             ))
                         }
                         else if abs_y < floor_level {
                             if abs_y < 100 {
                                 Box::new(GrassBlock::new(
-                                    Vector3::new(x, y as u32, z)
+                                    Vector3::new(abs_x, abs_y, abs_z)
                                 ))
                             }
                             else {
                                 Box::new(GrassBlock::new(
-                                    Vector3::new(x, y as u32, z)
+                                    Vector3::new(abs_x, abs_y, abs_z)
                                 ))
                             }
                         }
                         else {
                             Box::new(AirBlock::new(
-                                Vector3::new(x, y as u32, z)
+                                Vector3::new(abs_x, abs_y, abs_z)
                             ))
                         };
 

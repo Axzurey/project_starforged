@@ -17,7 +17,9 @@ pub struct GameWindow<'a> {
     surface_format: wgpu::TextureFormat,
     pub renderer: GameRenderer,
     pub camera_bindgroup_layout: wgpu::BindGroupLayout,
-    camera: Camera
+    camera: Camera,
+    texture_bindgroup: wgpu::BindGroup,
+    texture_bindgroup_layout: wgpu::BindGroupLayout
 }
 
 impl <'a> GameWindow<'a> {
@@ -97,12 +99,13 @@ impl <'a> GameWindow<'a> {
         let device_arc = Arc::new(device);
         let queue_arc = Arc::new(queue);
 
+        let camera = Camera::new(Point3::new(0.0, 0.0, 0.0), 0.0, 0.0, window_size.width as f32 / window_size.height as f32, 70.0, device_arc.clone(), &camera_bindgroup_layout);
+
+        let (texture_bindgroup, texture_bindgroup_layout) = initialize_load_textures(&device_arc, &queue_arc, surface_format);
+
         let renderer = GameRenderer::new(
             device_arc.clone(), queue_arc.clone(), (window_size.width, window_size.height), surface_format, 
-            &camera_bindgroup_layout
-        );
-
-        let camera = Camera::new(Point3::new(0.0, 0.0, 0.0), 0.0, 0.0, window_size.width as f32 / window_size.height as f32, 70.0, device_arc.clone(), &camera_bindgroup_layout);
+            &camera_bindgroup_layout, &texture_bindgroup_layout);
 
         Self {
             device: device_arc,
@@ -114,11 +117,10 @@ impl <'a> GameWindow<'a> {
             surface_config,
             surface_format,
             camera_bindgroup_layout,
-            camera
+            camera,
+            texture_bindgroup,
+            texture_bindgroup_layout
         }
     }
 
-    pub fn load_textures(&self) {
-        initialize_load_textures(&self.device, &self.queue, self.surface_format);
-    }
 }

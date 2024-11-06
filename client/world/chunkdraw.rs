@@ -1,6 +1,6 @@
 use std::{mem, sync::Arc};
 
-use shared::world::chunk::Chunk;
+use shared::world::chunk::{Chunk, ChunkState};
 use wgpu::util::DeviceExt;
 
 use crate::renderer::vertex::Vertex;
@@ -27,10 +27,11 @@ impl Vertex for ChunkDataVertex {
     }
 }
 pub struct ChunkDraw {
-    pub chunk: Chunk,
+    pub chunk: Arc<Chunk>,
     pub solid_buffers: Vec<Option<(wgpu::Buffer, wgpu::Buffer, u32)>>,
     pub transparent_buffers: Vec<Option<(wgpu::Buffer, wgpu::Buffer, u32)>>,
-    pub slice_vertex_buffers: Vec<wgpu::Buffer>
+    pub slice_vertex_buffers: Vec<wgpu::Buffer>,
+    pub states: Vec<ChunkState>
 }
 
 impl ChunkDraw {
