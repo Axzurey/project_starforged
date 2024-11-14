@@ -1,15 +1,20 @@
+use std::hash::Hash;
+
 use nalgebra::Vector3;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-pub type BlockType = Box<dyn Block + Send + Sync>;
+pub type BlockType = Box<dyn Block>;
 
-#[derive(PartialEq, Eq, Debug, Deserialize, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Deserialize, Clone, Copy, Serialize, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum Blocks {
     AIR = 0,
     DIRT = 1,
     GRASS = 2,
 }
+
+unsafe impl Send for Blocks {}
+unsafe impl Sync for Blocks {}
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum BlockFace {
@@ -90,7 +95,37 @@ pub enum BlockFaceTextureConfiguration {
     //better idea^ use some sort of reactive texture that is coded into the shader, rather than sending all that data.
 }
 
-pub trait Block {
+impl Hash for dyn Block {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.calc_hash());
+        state.finish();
+    }
+}
+
+impl PartialEq for dyn Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.calc_hash() == other.calc_hash()
+    }
+}
+
+impl Clone for dyn Block {
+    
+}
+
+impl Eq for dyn Block {}
+#[typetag::serde(tag="type")]
+pub trait Block: Send + Sync {
+    fn calc_hash(&self) -> u64 {
+        let mut i = self.get_block() as u64;
+        
+        let l = self.get_light();
+        i += (l[0] as u64) >> 16;
+        i +=  (l[1] as u64) >> 24;
+        i +=  (l[2] as u64) >> 32;
+        i +=  (l[3] as u64) >> 40;
+        //48 bits
+        i
+    }
     fn get_block(&self) -> Blocks;
 
     fn get_absolute_position(&self) -> Vector3<i32>;
@@ -126,6 +161,4 @@ pub trait Block {
     //r, g, b, sun
     fn get_light(&self) -> &[u8; 4];
     fn get_sunlight_intensity(&self) -> u8;
-
-    
 }

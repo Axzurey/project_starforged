@@ -1,9 +1,9 @@
-use std::{collections::{HashMap, HashSet, VecDeque}, sync::Arc};
+use std::{collections::{HashMap, VecDeque}, sync::Arc};
 
 use nalgebra::Vector3;
-use shared::world::{block::{BlockFace, BlockType}, chunk::{xz_to_index, Chunk}};
+use shared::world::{block::{BlockFace, BlockType}, chunk::{get_block_at_absolute, xz_to_index, Chunk}};
 
-use crate::{renderer::surfacevertex::{calculate_illumination_bytes, SurfaceVertex}, world::chunkmanager::get_block_at_absolute};
+use crate::renderer::surfacevertex::{calculate_illumination_bytes, SurfaceVertex};
 
 use super::depthsort::Quad;
 

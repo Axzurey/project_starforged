@@ -1,11 +1,13 @@
 use nalgebra::Vector3;
+use serde::{Deserialize, Serialize};
 
 use crate::world::block::Block;
 
+#[derive(Serialize, Deserialize)]
 pub struct AirBlock {
+    light: [u8; 4],
     absolute_position: Vector3<i32>,
     orientation: u8,
-    light: [u8; 4]
 }
 
 impl AirBlock {
@@ -18,6 +20,7 @@ impl AirBlock {
     }
 }
 
+#[typetag::serde]
 impl Block for AirBlock {
     fn get_block(&self) -> crate::world::block::Blocks {
         crate::world::block::Blocks::AIR

@@ -1,13 +1,22 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use cached::proc_macro::cached;
 use nalgebra::{Vector2, Vector3};
 use noise::Perlin;
+use serde::{Deserialize, Serialize};
 use stopwatch::Stopwatch;
 
 use crate::world::{blocks::{air_block::AirBlock, grass_block::GrassBlock}, worldgen::{generate_surface_height, is_cave}};
 
 use super::block::BlockType;
+
+pub fn get_block_at_absolute(x: i32, y: i32, z: i32, chunks: &HashMap<u32, Arc<Chunk>>) -> Option<&BlockType> {
+    if y < 0 || y > 255 {return None};
+    let chunk_x = x.div_euclid(16);
+    let chunk_z = z.div_euclid(16);
+
+    chunks.get(&xz_to_index(chunk_x, chunk_z)).map(|v| v.get_block_at(x.rem_euclid(16) as u32, y as u32, z.rem_euclid(16) as u32))
+}
 
 #[cached]
 pub fn local_xyz_to_index(x: u32, y: u32, z: u32) -> u32 {
@@ -24,6 +33,7 @@ pub fn xz_to_index(x: i32, z: i32) -> u32 {
 
 pub type ChunkGridType = Vec<Vec<BlockType>>;
 
+#[derive(Serialize, Deserialize)]
 pub struct Chunk {
     pub position: Vector2<i32>,
     pub grid: ChunkGridType

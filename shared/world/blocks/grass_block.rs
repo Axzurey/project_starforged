@@ -1,7 +1,9 @@
 use nalgebra::Vector3;
+use serde::{Deserialize, Serialize};
 
 use crate::world::block::Block;
 
+#[derive(Serialize, Deserialize)]
 pub struct GrassBlock {
     absolute_position: Vector3<i32>,
     orientation: u8,
@@ -17,7 +19,7 @@ impl GrassBlock {
         }
     }
 }
-
+#[typetag::serde]
 impl Block for GrassBlock {
     fn get_block(&self) -> crate::world::block::Blocks {
         crate::world::block::Blocks::GRASS
