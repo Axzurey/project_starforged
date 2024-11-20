@@ -112,18 +112,25 @@ impl Camera {
     pub fn update_matrices(&mut self, queue: &wgpu::Queue) {
         let (pitch_sin, pitch_cos) = self.pitch.sin_cos();
         let (yaw_sin, yaw_cos) = self.yaw.sin_cos();
+        
+
+        let dir = Vector3::new(
+            self.position.x,
+            self.position.y,
+            self.position.z
+        ) + Vector3::new(
+            pitch_cos * yaw_cos,
+            pitch_sin,
+            pitch_cos * yaw_sin
+        );
 
         self.view_matrix = Matrix4::look_at_rh(
             &self.position,
-            &Vector3::new(
-                pitch_cos * yaw_cos,
-                pitch_sin,
-                pitch_cos * yaw_sin
-            ).normalize().into(),
+            &Point3::new(dir.x, dir.y, dir.z),
             &Vector3::new(0.0, 1.0, 0.0)
         );
 
-        self.projection_matrix = Perspective3::new(self.aspect_ratio, self.fov, self.znear, self.zfar).into();
+        self.projection_matrix = (OPENGL_TO_WGPU_MATRIX * Perspective3::new(self.aspect_ratio, self.fov, self.znear, self.zfar).as_matrix()).into();
     
         self.view_proj_matrix = self.projection_matrix * self.view_matrix;
 

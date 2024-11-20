@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use nalgebra::Point3;
+use shared::loaders::texture_loader::{initialize_load_textures, preload_textures};
 use winit::window::Window;
 
-use crate::{loaders::texture_loader::initialize_load_textures, view::camera::Camera};
+use crate::{global::globalstate::GlobalState, view::camera::Camera};
 
 use super::gamerenderer::GameRenderer;
 
@@ -17,7 +18,6 @@ pub struct GameWindow<'a> {
     surface_format: wgpu::TextureFormat,
     pub renderer: GameRenderer,
     pub camera_bindgroup_layout: wgpu::BindGroupLayout,
-    camera: Camera,
     texture_bindgroup: wgpu::BindGroup,
     texture_bindgroup_layout: wgpu::BindGroupLayout
 }
@@ -99,7 +99,7 @@ impl <'a> GameWindow<'a> {
         let device_arc = Arc::new(device);
         let queue_arc = Arc::new(queue);
 
-        let camera = Camera::new(Point3::new(0.0, 0.0, 0.0), 0.0, 0.0, window_size.width as f32 / window_size.height as f32, 70.0, device_arc.clone(), &camera_bindgroup_layout);
+        preload_textures(&device_arc, &queue_arc, surface_format);
 
         let (texture_bindgroup, texture_bindgroup_layout) = initialize_load_textures(&device_arc, &queue_arc, surface_format);
 
@@ -117,10 +117,25 @@ impl <'a> GameWindow<'a> {
             surface_config,
             surface_format,
             camera_bindgroup_layout,
-            camera,
             texture_bindgroup,
             texture_bindgroup_layout
         }
     }
+    pub fn render(&mut self, dt: f32, globalstate: &mut GlobalState) {
+        
+        globalstate.camera.update_camera(dt);
+        globalstate.camera.update_matrices(&self.queue);
 
+        let mut output = self.surface.get_current_texture().unwrap();
+        let mut view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Primary Encoder")
+        });
+
+        self.renderer.render_surface(&self.device, &self.queue, &mut output, &mut view, &mut encoder, &globalstate.camera, &self.texture_bindgroup, &globalstate.chunk_manager);
+    
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+    }
 }

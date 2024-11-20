@@ -3,8 +3,8 @@ use std::sync::Arc;
 use shared::world::chunk::ChunkState;
 use stopwatch::Stopwatch;
 use wgpu::TextureFormat;
-
-use crate::{loaders::texture::Texture, view::camera::Camera, world::{chunkdraw::ChunkDataVertex, chunkmanager::ChunkManager}};
+use shared::loaders::texture::Texture;
+use crate::{view::camera::Camera, world::{chunkdraw::ChunkDataVertex, chunkmanager::ChunkManager}};
 
 use super::{pipelines::surface_pipeline::create_surface_pipeline, surfacevertex::SurfaceVertex, vertex::Vertex};
 
@@ -173,6 +173,6 @@ impl GameRenderer {
         }
         drop(render_pass);
 
-        println!("frame render: {}ms", t.elapsed_ms());
+        //println!("frame render: {}ms", t.elapsed_ms());
     }
 }

@@ -1,4 +1,4 @@
-use std::{mem, sync::Arc};
+use std::{iter, mem, sync::Arc};
 
 use shared::world::chunk::{Chunk, ChunkState};
 use wgpu::util::DeviceExt;
@@ -35,6 +35,15 @@ pub struct ChunkDraw {
 }
 
 impl ChunkDraw {
+    pub fn new(chunk: Arc<Chunk>) -> Self {
+        Self {
+            chunk,
+            solid_buffers: iter::repeat_with(|| None).take(16).collect(),
+            transparent_buffers: iter::repeat_with(|| None).take(16).collect(),
+            slice_vertex_buffers: Vec::new(),
+            states: iter::repeat(ChunkState::PreMesh).take(16).collect()
+        }
+    }
     pub fn set_slice_vertex_buffers(&mut self, device: &Arc<wgpu::Device>) {
         let slice_vertex_buffers = (0..16).map(|y| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

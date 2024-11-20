@@ -1,8 +1,10 @@
-use std::{collections::HashMap, net::{Ipv4Addr, SocketAddrV4}, str::FromStr, sync::{mpsc::{channel, Receiver}, Arc, RwLock}, thread};
+use std::{collections::HashMap, io::Write, net::{Ipv4Addr, SocketAddrV4}, str::FromStr, sync::{mpsc::{channel, Receiver}, Arc, RwLock}, thread};
 
 use bincode::{deserialize, serialize};
+use flate2::{write::ZlibEncoder, Compression};
 use message_io::{network::{Endpoint, NetEvent, ResourceId, Transport}, node::{self, NodeHandler, NodeListener, NodeTask}};
-use shared::network::containers::ServerToClientMessage;
+use miniz_oxide::deflate::compress_to_vec;
+use shared::{network::containers::ServerToClientMessage, world::chunkcompress::compress_chunk};
 
 pub struct ServerNetwork {
     handler: Arc<NodeHandler<()>>,
@@ -16,7 +18,7 @@ impl ServerNetwork {
     pub fn new() -> Self {
         let (handlerf, listener) = node::split::<()>();
 
-        let (id, _) = handlerf.network().listen(Transport::Udp, "0.0.0.0:3043").unwrap();
+        let (id, _) = handlerf.network().listen(Transport::FramedTcp, "0.0.0.0:3043").unwrap();
 
         let handlerarc = Arc::new(handlerf);
 
@@ -28,7 +30,7 @@ impl ServerNetwork {
             NetEvent::Accepted(_endpoint, _listener) => println!("Client connected"), // Tcp or Ws
             NetEvent::Message(endpoint, data) => {
                 println!("Received: {} from {}", String::from_utf8_lossy(data), endpoint);
-                handler.network().send(endpoint, data);
+                //handler.network().send(endpoint, data);
                 send.send(("X".to_owned(), endpoint)).unwrap();
             },
             NetEvent::Disconnected(_endpoint) => println!("Client disconnected"), //Tcp or Ws
@@ -56,13 +58,15 @@ impl ServerNetwork {
             }
         }
     }
-
+    //199480(new) 7240448(old) 133944(newer) 14595(newest!!! zlib!!!)
     pub fn send_message_to(&self, userid: String, message: ServerToClientMessage) {
         match message {
             ServerToClientMessage::ChunkAdded(c) => {
-                let encoded = bincode::serialize(&c).unwrap();
-                println!("LEN {}", encoded.len());
-                let u = self.handler.network().send(*self.connected.get("X").unwrap(), &encoded);
+                let compressed = compress_chunk(c.1);
+                let encoded = bincode::serialize(&compressed).unwrap();
+                let mut b = compress_to_vec(&encoded, 6);
+                println!("LEN {}, {}", b.len(), encoded.len());
+                let u = self.handler.network().send(*self.connected.get("X").unwrap(), &b);
                 println!("{:?} {}", u, *self.connected.get("X").unwrap());
             }
         }

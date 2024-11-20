@@ -67,8 +67,8 @@ pub static LOADED_TEXTURES: Lazy<Mutex<HashMap<String, LoadedTextureData>>> = La
 });
 
 pub fn preload_textures(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    device: &Arc<wgpu::Device>,
+    queue: &Arc<wgpu::Queue>,
     format: wgpu::TextureFormat
 ) {
     let mut tex = env::current_dir().unwrap();

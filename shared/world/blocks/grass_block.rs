@@ -1,7 +1,7 @@
 use nalgebra::Vector3;
 use serde::{Deserialize, Serialize};
 
-use crate::world::block::Block;
+use crate::{loaders::texture_loader::get_indices_from_texture, world::block::{Block, BlockFace, FaceTexture}};
 
 #[derive(Serialize, Deserialize)]
 pub struct GrassBlock {
@@ -40,8 +40,18 @@ impl Block for GrassBlock {
         true
     }
 
-    fn get_surface_texture_indices(&self, face: crate::world::block::BlockFace) -> (crate::world::block::BlockFaceTextureConfiguration, crate::world::block::BlockFaceTextureConfiguration, crate::world::block::BlockFaceTextureConfiguration) {
-        todo!()
+    fn get_surface_texture_indices(&self, face: crate::world::block::BlockFace) -> (crate::world::block::FaceTexture, crate::world::block::FaceTexture, crate::world::block::FaceTexture) {
+        match face {
+            BlockFace::Top => {
+                (FaceTexture::Static(get_indices_from_texture("grass-top")), FaceTexture::default(), FaceTexture::default())
+            },
+            BlockFace::Bottom => {
+                (FaceTexture::Static(get_indices_from_texture("dirt")), FaceTexture::default(), FaceTexture::default())
+            },
+            _ => {
+                (FaceTexture::Static(get_indices_from_texture("grass-side")), FaceTexture::default(), FaceTexture::default())
+            }
+        }
     }
 
     fn is_fluid(&self) -> bool {

@@ -1,6 +1,6 @@
 use std::{mem, ops::BitOrAssign};
 
-use shared::world::block::{BlockFaceTextureConfiguration, BlockType};
+use shared::world::block::{FaceTexture, BlockType};
 use wgpu::vertex_attr_array;
 
 use crate::shared_world::block::BlockFace;
@@ -16,7 +16,7 @@ pub struct SurfaceVertex {
 }
 
 impl SurfaceVertex {
-    pub fn from_position(pos: [u32; 3], face: BlockFace, nth: u32, texture_indices: (BlockFaceTextureConfiguration, BlockFaceTextureConfiguration, BlockFaceTextureConfiguration), illumination: u32) -> SurfaceVertex {
+    pub fn from_position(pos: [u32; 3], face: BlockFace, nth: u32, texture_indices: (FaceTexture, FaceTexture, FaceTexture), illumination: u32) -> SurfaceVertex {
         let face_dir = match face {
             BlockFace::Top => 0,
             BlockFace::Bottom => 1,
@@ -42,18 +42,18 @@ impl SurfaceVertex {
         d0.bitor_assign(nth << 18);
 
         match texture_indices.0 {
-            BlockFaceTextureConfiguration::Static(v) => d1.bitor_assign(v as u32),
-            //BlockFaceTextureConfiguration::Dynamic(v, _) => d1.bitor_assign(1),
+            FaceTexture::Static(v) => d1.bitor_assign(v as u32),
+            //FaceTexture::Dynamic(v, _) => d1.bitor_assign(1),
         }
 
         match texture_indices.1 {
-            BlockFaceTextureConfiguration::Static(v) => d1.bitor_assign((v as u32) << 8),
-            //BlockFaceTextureConfiguration::Dynamic(v, _) => d1.bitor_assign(1 << 1),
+            FaceTexture::Static(v) => d1.bitor_assign((v as u32) << 8),
+            //FaceTexture::Dynamic(v, _) => d1.bitor_assign(1 << 1),
         }
 
         match texture_indices.2 {
-            BlockFaceTextureConfiguration::Static(v) => d1.bitor_assign((v as u32) << 16),
-            //BlockFaceTextureConfiguration::Dynamic(v, _) => {},
+            FaceTexture::Static(v) => d1.bitor_assign((v as u32) << 16),
+            //FaceTexture::Dynamic(v, _) => {},
         }
 
         //we're going to have reactive textures soon, rather than baking color information into the vertex

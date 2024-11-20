@@ -22,6 +22,15 @@ pub fn get_block_at_absolute(x: i32, y: i32, z: i32, chunks: &HashMap<u32, Arc<C
 pub fn local_xyz_to_index(x: u32, y: u32, z: u32) -> u32 {
     ((z * 16 * 16) + (y * 16) + x) as u32
 }
+pub fn index_to_local_xyz(index: u32) -> (u32, u32, u32) {
+    let x = index % 16;
+    let up = (index - x) / 16;
+    let y = up % 16;
+
+    let z = (up - y) / 16;
+
+    (x, y, z)
+}
 
 #[cached]   
 pub fn xz_to_index(x: i32, z: i32) -> u32 {
@@ -33,7 +42,7 @@ pub fn xz_to_index(x: i32, z: i32) -> u32 {
 
 pub type ChunkGridType = Vec<Vec<BlockType>>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Chunk {
     pub position: Vector2<i32>,
     pub grid: ChunkGridType

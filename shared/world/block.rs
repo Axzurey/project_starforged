@@ -3,6 +3,8 @@ use std::hash::Hash;
 use nalgebra::Vector3;
 use serde::{Deserialize, Serialize};
 
+use super::constructblock::construct_block;
+
 pub type BlockType = Box<dyn Block>;
 
 #[derive(PartialEq, Eq, Debug, Deserialize, Clone, Copy, Serialize, Hash)]
@@ -87,12 +89,18 @@ impl From<usize> for BlockFace {
 }
 
 #[derive(Clone, Copy)]
-pub enum BlockFaceTextureConfiguration {
+pub enum FaceTexture {
     //static index
     Static(usize),
     //static index + color/alpha
     //Dynamic(usize, [u8; 4])
     //better idea^ use some sort of reactive texture that is coded into the shader, rather than sending all that data.
+}
+
+impl Default for FaceTexture {
+    fn default() -> Self {
+        FaceTexture::Static(0)
+    }
 }
 
 impl Hash for dyn Block {
@@ -108,8 +116,14 @@ impl PartialEq for dyn Block {
     }
 }
 
-impl Clone for dyn Block {
+impl Clone for BlockType {
+    fn clone(&self) -> Self {
+        construct_block(self.get_block(), self.get_absolute_position())
+    }
     
+    fn clone_from(&mut self, source: &Self) {
+        *self = source.clone()
+    }
 }
 
 impl Eq for dyn Block {}
@@ -151,7 +165,7 @@ pub trait Block: Send + Sync {
         false
     }
 
-    fn get_surface_texture_indices(&self, face: BlockFace) -> (BlockFaceTextureConfiguration, BlockFaceTextureConfiguration, BlockFaceTextureConfiguration);
+    fn get_surface_texture_indices(&self, face: BlockFace) -> (FaceTexture, FaceTexture, FaceTexture);
 
     fn is_fluid(&self) -> bool;
 
