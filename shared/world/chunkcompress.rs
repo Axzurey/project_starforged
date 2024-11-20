@@ -28,7 +28,6 @@ pub fn compress_chunk(chunk: Arc<Chunk>) -> CompressedChunk {
                 position_list.insert(block.clone(), v);
             }
         }
-        println!("{}", position_list.len());
         i += 1;
     }
 

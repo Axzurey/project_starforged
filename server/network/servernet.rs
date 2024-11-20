@@ -64,6 +64,7 @@ impl ServerNetwork {
             ServerToClientMessage::ChunkAdded(c) => {
                 let compressed = compress_chunk(c.1);
                 let encoded = bincode::serialize(&compressed).unwrap();
+                
                 let mut b = compress_to_vec(&encoded, 6);
                 println!("LEN {}, {}", b.len(), encoded.len());
                 let u = self.handler.network().send(*self.connected.get("X").unwrap(), &b);
