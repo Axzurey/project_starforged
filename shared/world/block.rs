@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, ops::BitOrAssign};
 
 use nalgebra::Vector3;
 use serde::{Deserialize, Serialize};
@@ -133,10 +133,10 @@ pub trait Block: Send + Sync {
         let mut i = self.get_block() as u64;
         
         let l = self.get_light();
-        i += (l[0] as u64) >> 16;
-        i +=  (l[1] as u64) >> 24;
-        i +=  (l[2] as u64) >> 32;
-        i +=  (l[3] as u64) >> 40;
+        i.bitor_assign((l[0] as u64) << 16);
+        i.bitor_assign((l[1] as u64) << 24);
+        i.bitor_assign((l[2] as u64) << 32);
+        i.bitor_assign((l[3] as u64) << 40);
         //48 bits
         i
     }
