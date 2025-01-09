@@ -1,4 +1,4 @@
 cd %cd%
 
-START cargo run --bin server --release
-START cargo run --bin client --release
+START cargo run --bin server
+START cargo run --bin client
