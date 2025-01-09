@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use shared::world::chunk::ChunkState;
 use stopwatch::Stopwatch;
-use wgpu::TextureFormat;
+use wgpu::{Extent3d, TextureFormat, TextureViewDescriptor};
 use shared::loaders::texture::Texture;
 use crate::{view::camera::Camera, world::{chunkdraw::ChunkDataVertex, chunkmanager::ChunkManager}};
 
@@ -14,7 +14,9 @@ pub struct GameRenderer {
     dims: (u32, u32),
     surface_format: wgpu::TextureFormat,
     surface_pipeline: wgpu::RenderPipeline,
-    depth_texture: Texture
+    depth_texture: Texture,
+    multisample_texture: wgpu::Texture,
+    multisample_texture_view: wgpu::TextureView
 }
 
 impl GameRenderer {
@@ -92,9 +94,23 @@ impl GameRenderer {
 
         let surface_pipeline = create_surface_pipeline(&device, surface_format, texture_bindgroup_layout, camera_bindgroup_layout, &[SurfaceVertex::desc(), ChunkDataVertex::desc()], Some(TextureFormat::Depth32Float));
 
+        let multisample_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("MS_Texture"),
+            size: Extent3d {width: dims.0, height: dims.1, depth_or_array_layers: 1},
+            mip_level_count: 1,
+            sample_count: 4,
+            dimension: wgpu::TextureDimension::D2,
+            format: surface_format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+
+        let msview = multisample_texture.create_view(&TextureViewDescriptor::default());
+
         let depth_texture = Texture::from_empty("depth texture", &device, wgpu::TextureFormat::Depth32Float, dims.0, dims.1, wgpu::FilterMode::Linear);
         Self {
-            device, queue, dims, surface_format, surface_pipeline, depth_texture
+            device, queue, dims, surface_format, surface_pipeline, depth_texture, 
+            multisample_texture_view: msview, multisample_texture
         }
     }
 
@@ -115,8 +131,8 @@ impl GameRenderer {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("object render pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment { 
-                view: &output_view, 
-                resolve_target: None, 
+                view: &self.multisample_texture_view, 
+                resolve_target: Some(&output_view), 
                 ops: wgpu::Operations { 
                     load: wgpu::LoadOp::Clear(wgpu::Color {
                         r: 0.1,
@@ -142,6 +158,7 @@ impl GameRenderer {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+
         render_pass.set_pipeline(&self.surface_pipeline);
         render_pass.set_bind_group(0, texture_bindgroup, &[]);
         render_pass.set_bind_group(1, camera_bindgroup, &[]);

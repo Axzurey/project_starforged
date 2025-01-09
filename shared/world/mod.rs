@@ -5,4 +5,4 @@ pub mod blocks;
 pub mod chunkcompress;
 pub mod constructblock;
 pub mod blockrepr;
-pub mod voxeloctree;
+pub mod biomemap;

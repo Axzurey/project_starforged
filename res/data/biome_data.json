@@ -1,0 +1,72 @@
+{
+    "Woodlands": {
+        "tree_density": 1,
+        "weights": {
+            "continentalness": 0.0,
+            "humidity": 0.25,
+            "arcanity": 0.0,
+            "peaks": 0,
+            "temperature": 0
+        }
+    },
+    "Plains": {
+        "tree_density": 0.75,
+        "weights": {
+            "continentalness": 0.0,
+            "humidity": 0.0,
+            "arcanity": 0.0,
+            "peaks": 0,
+            "temperature": 0
+        }
+    },
+    "Mountains": {
+        "tree_density": 0.5,
+        "weights": {
+            "continentalness": 0.75,
+            "humidity": 0.0,
+            "arcanity": 0.0,
+            "peaks": 0.2,
+            "temperature": -0.3
+        }
+    },
+    "Desert": {
+        "tree_density": 0.5,
+        "weights": {
+            "continentalness": -0.25,
+            "humidity": -0.5,
+            "arcanity": 0.0,
+            "peaks": 0.0,
+            "temperature": 0.75
+        }
+    },
+    "SnowyPlains": {
+        "tree_density": 1,
+        "weights": {
+            "continentalness": 0.25,
+            "humidity": 0.3,
+            "arcanity": 0.0,
+            "peaks": 0,
+            "temperature": -0.75
+        }
+    },
+    "HauntedWoodlands": {
+        "tree_density": 1,
+        "weights": {
+            "continentalness": 0.0,
+            "humidity": 0.4,
+            "arcanity": 0.85,
+            "peaks": 0,
+            "temperature": 0
+        }
+    },
+    "Lake": {
+        "tree_density": 1,
+        "weights": {
+            "continentalness": -0.2,
+            "humidity": 0.7,
+            "arcanity": 0.0,
+            "peaks": 0,
+            "temperature": -0.2
+        }
+    }
+}

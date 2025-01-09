@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use shared::world::{block::BlockType, chunk::{xz_to_index, Chunk}};
+use shared::world::chunk::{xz_to_index, Chunk};
 
 use super::chunkdraw::ChunkDraw;
 

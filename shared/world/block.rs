@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::constructblock::construct_block;
 
-pub type BlockType = Box<dyn Block>;
+//pub type BlockType = Box<dyn Block>;
 
 #[derive(PartialEq, Eq, Debug, Deserialize, Clone, Copy, Serialize, Hash)]
 #[serde(rename_all = "lowercase")]
@@ -29,6 +29,17 @@ pub enum BlockFace {
 }
 
 impl BlockFace {
+    pub fn from_index(index: usize) -> Self {
+        match index {
+            0 => BlockFace::Left,
+            1 => BlockFace::Right,
+            2 => BlockFace::Bottom,
+            3 => BlockFace::Top,
+            4 => BlockFace::Front,
+            5 => BlockFace::Back,
+            _ => panic!("Invalid BlockFace index")
+        }
+    }
     pub fn normal_index(&self) -> u32 {
         match self {
             BlockFace::Left => 0u32,
@@ -97,12 +108,19 @@ pub enum FaceTexture {
     //better idea^ use some sort of reactive texture that is coded into the shader, rather than sending all that data.
 }
 
+impl From<usize> for FaceTexture {
+    fn from(value: usize) -> Self {
+        FaceTexture::Static(value)
+    }
+}
+
+
 impl Default for FaceTexture {
     fn default() -> Self {
         FaceTexture::Static(0)
     }
 }
-
+/**
 impl Hash for dyn Block {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write_u64(self.calc_hash());
@@ -175,4 +193,5 @@ pub trait Block: Send + Sync {
     //r, g, b, sun
     fn get_light(&self) -> &[u8; 4];
     fn get_sunlight_intensity(&self) -> u8;
-}
+}*/
+static X: &'static str = "";

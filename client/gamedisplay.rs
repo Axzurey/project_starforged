@@ -66,7 +66,7 @@ impl ApplicationHandler for GameDisplay<'_> {
 
         self.chunkrecv = Some(newchunkrecv);
 
-        let chunkmesh = spawn_chunk_meshing_loop(2);
+        let chunkmesh = spawn_chunk_meshing_loop(4);
 
         self.chunkmesher = Some(chunkmesh);
   
@@ -122,6 +122,7 @@ impl ApplicationHandler for GameDisplay<'_> {
 
                 let t = Stopwatch::start_new();
                 if let Ok(nextchunk) = self.chunkrecv.as_ref().unwrap().try_recv() {
+                    let position = nextchunk.position;
                     let (x, z) = (nextchunk.position.x, nextchunk.position.y);
                     let index = xz_to_index(x, z);
                     let mut chunkdraw = ChunkDraw::new(nextchunk);
@@ -135,21 +136,31 @@ impl ApplicationHandler for GameDisplay<'_> {
                     });
 
                     let renderctx = Arc::new(Renderctx::new(gamewin.device.clone(), gamewin.queue.clone()));
-
                     for y in 0..16 {
-                        
                         self.chunkmesher.as_ref().unwrap().0.send((x, z, y, nh.clone(), renderctx.clone())).unwrap();
                     }
+                    // for x in position.x - 1..= position.x + 1 {
+                    //     for z in position.y - 1..= position.y + 1 {
+                    //         if !nh.contains_key(&xz_to_index(x, z)) || (x == 0 && z == 0) {continue}
+                    //         for y in 0..16 {
+                    //             self.chunkmesher.as_ref().unwrap().0.send((x, z, y, nh.clone(), renderctx.clone())).unwrap();
+                    //         }
+                    //     }
+                    // }
                 }
 
-                if let Ok((x, z, y, buff)) = self.chunkmesher.as_ref().unwrap().1.try_recv() {
-                    let index = xz_to_index(x, z);
-                    let chunkdraw = self.globalstate.as_mut().unwrap().chunk_manager.chunks.get_mut(&index).unwrap();
-                    
-                    chunkdraw.set_solid_buffer(y, buff.0);
-                    chunkdraw.set_transparent_buffer(y, buff.1);
-                    chunkdraw.states[y as usize] = ChunkState::Ready;
-                   
+                for _ in 0..16 {
+                    if let Ok((x, z, y, buff)) = self.chunkmesher.as_ref().unwrap().1.try_recv() {
+                        let index = xz_to_index(x, z);
+                        let chunkdraw = self.globalstate.as_mut().unwrap().chunk_manager.chunks.get_mut(&index).unwrap();
+                        
+                        chunkdraw.set_solid_buffer(y, buff.0);
+                        chunkdraw.set_transparent_buffer(y, buff.1);
+                        chunkdraw.states[y as usize] = ChunkState::Ready;
+                    }
+                    else {
+                        break;
+                    }
                 }
                 
                 self.window.as_ref().unwrap().request_redraw();

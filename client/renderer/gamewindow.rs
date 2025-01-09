@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use nalgebra::Point3;
 use shared::loaders::texture_loader::{initialize_load_textures, preload_textures};
+use wgpu::TextureFormat;
 use winit::window::Window;
 
 use crate::{global::globalstate::GlobalState, view::camera::Camera};
@@ -63,9 +64,10 @@ impl <'a> GameWindow<'a> {
 
         println!("{:?}", surface_capabilities.formats);
 
-        let surface_format = surface_capabilities.formats.iter()
-            .copied().find(|f| f.is_srgb())
-            .unwrap_or(surface_capabilities.formats[surface_capabilities.formats.len() - 1]);
+        // let surface_format = surface_capabilities.formats.iter()
+        //     .copied().find(|f| f.is_srgb())
+        //     .unwrap_or(surface_capabilities.formats[surface_capabilities.formats.len() - 1]);
+        let surface_format = TextureFormat::Rgba8UnormSrgb;
 
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_DST,

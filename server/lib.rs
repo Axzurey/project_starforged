@@ -10,12 +10,12 @@ mod network;
 pub fn main() {
     let mut servernetwork = ServerNetwork::new();
 
-    for i in 0..8 {
+    for i in 0..10 {
         sleep(Duration::from_secs(1));
         servernetwork.recv();
     }
     let mut chunkmanager = ServerChunkManager::new();
-    chunkmanager.generate_range_inclusive(-9, -9, 9, 9, &|chunk| {
+    chunkmanager.generate_range_inclusive(-10, -10, 10, 10, &|chunk| {
         let pos = chunk.position;
         servernetwork.send_message_to("".to_owned(), ChunkAdded((Vector2::new(pos.x, pos.y), chunk)));
     });

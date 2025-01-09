@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, VecDeque}, sync::Arc};
 
 use nalgebra::Vector3;
-use shared::world::{block::{BlockFace, BlockType}, chunk::{get_block_at_absolute, xz_to_index, Chunk}};
+use shared::world::{block::BlockFace, blockrepr::{does_not_render, get_block_id, get_surface_texture_indices, has_partial_transparency, is_fluid, WorldBlock}, chunk::{get_block_at_absolute, xz_to_index, Chunk}};
 
 use crate::renderer::surfacevertex::{calculate_illumination_bytes, SurfaceVertex};
 
@@ -30,6 +30,11 @@ pub enum MeshStageType {
 }
 
 pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u32, Arc<Chunk>>, stage: MeshStageType) -> (Vec<SurfaceVertex>, Vec<u32>, u32, Vec<Quad>) {
+    //if it is entirely air, return early
+    if chunks.get(&xz_to_index(chunk_x, chunk_z)).unwrap().fullair[y_slice as usize] {
+        return (vec![], vec![], 0, vec![]);
+    }
+    
     let mut axis_columns = [[[0u32; 18]; 18]; 3];
 
     let mut column_face_masks = [[[0u32; 18]; 18]; 6];
@@ -64,8 +69,8 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
         for y in 0..16 {
             for x in 0..16 {
                 let b = chunk.get_block_at(x as u32, y as u32 + y_slice * 16, z as u32);
-                if b.does_not_render() {continue;}
-                add_voxel_to_axis_cols(b.has_partial_transparency(), b.is_fluid(), x + 1, y + 1, z + 1, &mut axis_columns, &stage);
+                if does_not_render(b) {continue;}
+                add_voxel_to_axis_cols(has_partial_transparency(b), is_fluid(b), x + 1, y + 1, z + 1, &mut axis_columns, &stage);
             }
         }
     }
@@ -77,16 +82,16 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                 let block = get_block_at_absolute(pos.x + chunk_x * 16, pos.y + y_slice as i32 * 16, pos.z + chunk_z * 16, chunks);
                 
                 let hastrans = match &block {
-                    Some(b) => b.has_partial_transparency(),
+                    Some(b) => has_partial_transparency(b),
                     None => false
                 };
 
                 let isfluid = match &block {
-                    Some(b) => b.is_fluid(),
+                    Some(b) => is_fluid(b),
                     None => false
                 };
 
-                if block.is_none() || block.unwrap().does_not_render() {continue;}
+                if block.is_none() || does_not_render(block.unwrap()) {continue;}
 
                 add_voxel_to_axis_cols(hastrans, isfluid, x, y, z, &mut axis_columns, &stage);
             }
@@ -99,16 +104,16 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                 let block = get_block_at_absolute(pos.x + chunk_x * 16, pos.y + y_slice as i32 * 16, pos.z + chunk_z * 16, chunks);
                 
                 let hastrans = match &block {
-                    Some(b) => b.has_partial_transparency(),
+                    Some(b) => has_partial_transparency(block.unwrap()),
                     None => false
                 };
 
                 let isfluid = match &block {
-                    Some(b) => b.is_fluid(),
+                    Some(b) => is_fluid(block.unwrap()),
                     None => false
                 };
 
-                if block.is_none() || block.unwrap().does_not_render() {continue;}
+                if block.is_none() || does_not_render(block.unwrap()) {continue;}
 
                 add_voxel_to_axis_cols(hastrans, isfluid, x, y, z, &mut axis_columns, &stage);
             }
@@ -121,16 +126,16 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                 let block = get_block_at_absolute(pos.x + chunk_x * 16, pos.y + y_slice as i32 * 16, pos.z + chunk_z * 16, chunks);
                 
                 let hastrans = match &block {
-                    Some(b) => b.has_partial_transparency(),
+                    Some(b) => has_partial_transparency(b),
                     None => false
                 };
 
                 let isfluid = match &block {
-                    Some(b) => b.is_fluid(),
+                    Some(b) => is_fluid(b),
                     None => false
                 };
 
-                if block.is_none() || block.unwrap().does_not_render() {continue;}
+                if block.is_none() || does_not_render(block.unwrap()) {continue;}
 
                 add_voxel_to_axis_cols(hastrans, isfluid, x, y, z, &mut axis_columns, &stage);
             }
@@ -151,7 +156,7 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
         }
     }
 
-    let mut data: [HashMap<u64, HashMap<u32, ([u32; 16], Option<&BlockType>)>>; 6];
+    let mut data: [HashMap<u64, HashMap<u32, ([u32; 16], Option<&WorldBlock>, Vector3<i32>)>>; 6];
     data = [
         HashMap::new(),
         HashMap::new(),
@@ -190,12 +195,14 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                     };
 
                     let current_voxel = chunk.get_block_at(voxel_pos.x as u32, voxel_pos.y as u32 + y_slice * 16, voxel_pos.z as u32);
+
+                    let abs_pos = Vector3::new(chunk.position.x * 16 + voxel_pos.x, voxel_pos.y + y_slice as i32 * 16, chunk.position.y * 16 + voxel_pos.z);
                     
-                    let nextdoorpos = current_voxel.get_absolute_position() + facedir.normal();
+                    let nextdoorpos = abs_pos + facedir.normal();
 
                     let illumination = get_block_at_absolute(nextdoorpos.x, nextdoorpos.y, nextdoorpos.z, chunks).map_or(0, |v| calculate_illumination_bytes(&v));
 
-                    let block_hash = illumination as u64 | ((current_voxel.get_block() as u64) << 32);
+                    let block_hash = illumination as u64 | (get_block_id(current_voxel) << 32);
                     let data = data[axis]
                         .entry(block_hash)
                         .or_default()
@@ -203,6 +210,7 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                         .or_default();
                     data.0[x as usize] |= 1u32 << z as u32;
                     data.1 = Some(&current_voxel);
+                    data.2 = abs_pos;
                 }
             }
         }
@@ -225,7 +233,7 @@ pub fn binary_mesh(chunk_x: i32, chunk_z: i32, y_slice: u32, chunks: &HashMap<u3
                 let quads_from_axis = greedy_mesh_binary_plane(plane.0);
 
                 quads_from_axis.into_iter().for_each(|q| {
-                    q.append_vertices(&mut vertices, facedir, axis_pos, plane.1.unwrap(), chunks, &mut quads);
+                    q.append_vertices(&mut vertices, facedir, axis_pos, plane.1.unwrap(), chunks, &mut quads, plane.2);
                 });
             }
         }
@@ -251,17 +259,18 @@ impl GreedyQuad {
         vertices: &mut Vec<SurfaceVertex>,
         face_dir: BlockFace,
         axis: u32,
-        block: &BlockType,
+        block: &WorldBlock,
         chunks: &HashMap<u32, Arc<Chunk>>,
-        quads: &mut Vec<Quad>
+        quads: &mut Vec<Quad>,
+        abs_pos: Vector3<i32>
     ) {
         let axis = axis as i32;
 
-        let nextdoorpos = block.get_absolute_position() + face_dir.normal();
+        let nextdoorpos = abs_pos + face_dir.normal();
 
         let illumination = get_block_at_absolute(nextdoorpos.x, nextdoorpos.y, nextdoorpos.z, chunks).map_or(0, |v| calculate_illumination_bytes(&v));
 
-        let tex = block.get_surface_texture_indices(face_dir);
+        let tex = get_surface_texture_indices(block, face_dir);
 
         let v1 = SurfaceVertex::from_position(
             face_dir.world_to_sample(axis as i32, self.x as i32, self.y as i32), face_dir, 0, tex, illumination
@@ -287,8 +296,8 @@ impl GreedyQuad {
             o.into_iter().rev().for_each(|i| new_vertices.push_back(i));
         }
 
-        //todo: actually calculate the center
-        let center = block.get_absolute_position().map(|v| v as f32);
+        //todo: actually calculate the center. Untodo: will remove this.
+        let center = abs_pos.map(|v| v as f32);
 
         quads.push(Quad {
             center,

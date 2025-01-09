@@ -4,3 +4,4 @@ pub mod meshthread;
 pub mod mesher;
 pub mod binarymesher;
 pub mod depthsort;
+pub mod fastmesher;

@@ -40,5 +40,11 @@
         "alias": "leaf",
         "type": "diffuse",
         "filter": "nearest"
+    },
+    {
+        "path": "textures/sand.png",
+        "alias": "sand",
+        "type": "diffuse",
+        "filter": "nearest"
     }
 ]

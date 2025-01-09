@@ -1,11 +1,15 @@
 use nalgebra::Vector3;
-use super::{block::{BlockType, Blocks}, blocks::{air_block::AirBlock, grass_block::GrassBlock}};
+
+use super::blockrepr::WorldBlock;
 
 
-pub fn construct_block(blocktype: Blocks, absolute_position: Vector3<i32>) -> BlockType {
+pub fn construct_block(blocktype: &WorldBlock, absolute_position: Vector3<i32>) -> WorldBlock {
     match blocktype {
-        Blocks::AIR => Box::new(AirBlock::new(absolute_position)),
-        Blocks::GRASS => Box::new(GrassBlock::new(absolute_position)),
-        Blocks::DIRT => todo!()
+        WorldBlock::Air(x) => WorldBlock::Air(*x),
+        WorldBlock::Dirt(x) => WorldBlock::Dirt(*x),
+        WorldBlock::Grass(x) => WorldBlock::Grass(*x),
+        WorldBlock::Stone(x) => WorldBlock::Stone(*x),
+        WorldBlock::Sand(x) => WorldBlock::Sand(*x),
+        //add separate handling for blocks that require special handling and don't do anything too silly.
     }
 }
