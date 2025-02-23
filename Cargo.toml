@@ -33,10 +33,12 @@ serde_json = "1.0.132"
 splines = "4.3.1"
 stopwatch = "0.0.7"
 strum_macros = "0.26.4"
-tokio = "1.41.0"
+tokio = {version = "1.41.0", features = ["full"]}
 typetag = "0.2.18"
 wgpu = "22.1.0"
 winit = "0.30.5"
+sqlx = { version = "0.8.3", features = [ "runtime-tokio" ] }
+reqwest = "0.12.12"
 
 [build-dependencies]
 anyhow = "1.0"

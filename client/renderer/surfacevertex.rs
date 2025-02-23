@@ -1,6 +1,6 @@
 use std::{mem, ops::BitOrAssign};
 
-use shared::world::{block::FaceTexture, blockrepr::WorldBlock};
+use shared::world::{block::FaceTexture, blockrepr::{get_block_light, WorldBlock}};
 use wgpu::vertex_attr_array;
 
 use crate::shared_world::block::BlockFace;
@@ -94,7 +94,7 @@ pub fn calculate_illumination_bytes(block: &WorldBlock) -> u32 {
     let mut val: u32 = 0;
     
     //TODO: actually calculate sunlight intensity.
-    let sunlight = 15;
+    let sunlight = get_block_light(block);
     let light = [0, 0, 0]; //this will be removed
 
     //sunlight: 4 bits

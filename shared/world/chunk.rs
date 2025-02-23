@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use cached::proc_macro::cached;
 use nalgebra::{Vector2, Vector3};
-use noise::{OpenSimplex, Perlin, Seedable};
+use noise::{OpenSimplex, Seedable};
 use serde::{Deserialize, Serialize};
 use stopwatch::Stopwatch;
 
@@ -225,6 +225,9 @@ impl Chunk {
     pub fn get_block_at(&self, x: u32, y: u32, z: u32) -> &WorldBlock {
         &self.grid[(y / 16) as usize][local_xyz_to_index(x % 16, y % 16, z % 16) as usize]
     }
+    pub fn get_block_at_mut(&mut self, x: u32, y: u32, z: u32) -> &mut WorldBlock {
+        self.grid[(y / 16) as usize].get_mut(local_xyz_to_index(x % 16, y % 16, z % 16) as usize).unwrap()
+    }
 
     pub fn get_surface_block_y(&self, x: u32, z: u32) -> u32 {
         for y in (1..=255).rev() {
@@ -240,6 +243,6 @@ impl Chunk {
     }
 
     pub fn modify_block_at<F>(&mut self, x: u32, y: u32, z: u32, mut callback: F) where F: FnMut(&mut WorldBlock) {
-        callback(&mut self.grid[(y / 16) as usize][local_xyz_to_index(x % 16, y % 16, z % 16) as usize]);
+        callback(&mut self.grid[(y / 16) as usize][local_xyz_to_index(x, y % 16, z) as usize]);
     }
 }

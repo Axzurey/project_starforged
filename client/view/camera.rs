@@ -90,7 +90,7 @@ impl Camera {
             fov: fov.to_radians(),
             
             znear: 0.1,
-            zfar: 400.,
+            zfar: 1000.,
 
             projection_matrix: Matrix4::identity(),
             view_matrix: Matrix4::identity(),

@@ -55,7 +55,7 @@ pub fn create_surface_pipeline(
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: Some(wgpu::Face::Back),
             polygon_mode: wgpu::PolygonMode::Fill,
-            unclipped_depth: true,
+            unclipped_depth: false,
             conservative: false,
         },
         depth_stencil: depth_format.map(|format| wgpu::DepthStencilState {

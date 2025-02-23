@@ -129,17 +129,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     //check which axis it is
     if (absNormal.x > absNormal.y && absNormal.x > absNormal.z) {
-        tileUV = vec2(in.worldpos.z, in.worldpos.y);
-        texCoord = fract(1 - tileUV);
+        tileUV = vec2(1 - in.worldpos.z, 1 - in.worldpos.y);
+        texCoord = fract(tileUV);
     } else if (absNormal.y > absNormal.x && absNormal.y > absNormal.z) {
         tileUV = vec2(in.worldpos.x, in.worldpos.z);
         texCoord = fract(tileUV);
     } else {
-        tileUV = vec2(in.worldpos.x, in.worldpos.y);
-        texCoord = fract(1 - tileUV);
+        tileUV = vec2(1 - in.worldpos.x, 1 - in.worldpos.y);
+        texCoord = fract(tileUV);
     }
 
-    let diffuse_color = textureSampleLevel(diffuse_texture_array[in.diffuse_texture_index], diffuse_sampler_array[in.diffuse_texture_index], texCoord, 0.0).rgba;
+    let diffuse_color = textureSampleGrad(diffuse_texture_array[in.diffuse_texture_index], diffuse_sampler_array[in.diffuse_texture_index], texCoord, dpdxCoarse(tileUV), dpdyCoarse(tileUV)).rgba;
 
     let sunlight = f32(extractBits(in.illumination, 24u, 4u));
 

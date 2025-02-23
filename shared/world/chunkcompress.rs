@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 
 use super::{blockrepr::WorldBlock, chunk::{index_to_local_xyz, local_xyz_to_index, Chunk}, constructblock::construct_block};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CompressedChunk {
     position: Vector2<i32>,
     slices: Vec<HashMap<WorldBlock, Vec<u16>>>
 }
 
-pub fn compress_chunk(chunk: Arc<Chunk>) -> CompressedChunk {
+pub fn compress_chunk(chunk: &Chunk) -> CompressedChunk {
     let mut lists: Vec<HashMap<WorldBlock, Vec<u16>>> = std::iter::repeat_with(|| HashMap::new()).take(16).collect();
     
     for (i, plane) in chunk.grid.iter().enumerate() {

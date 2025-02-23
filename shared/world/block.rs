@@ -99,7 +99,7 @@ impl From<usize> for BlockFace {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum FaceTexture {
     //static index
     Static(usize),

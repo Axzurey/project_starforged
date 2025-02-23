@@ -6,3 +6,4 @@ pub mod chunkcompress;
 pub mod constructblock;
 pub mod blockrepr;
 pub mod biomemap;
+pub mod butils;

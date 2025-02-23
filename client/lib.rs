@@ -14,7 +14,8 @@ mod network;
 mod world;
 mod global;
 
-pub fn main() {
+#[tokio::main]
+pub async fn main() {
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);

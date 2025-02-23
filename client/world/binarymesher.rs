@@ -21,7 +21,7 @@ pub fn generate_indices(vertex_count: usize) -> Vec<u32> {
     });
     indices
 }
-
+//ever so graciously stolen from tantan™️
 #[derive(PartialEq, Clone)]
 pub enum MeshStageType {
     Solid,

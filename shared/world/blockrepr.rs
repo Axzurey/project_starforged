@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::loaders::texture_loader::get_indices_from_texture;
 
-use super::block::{BlockFace, FaceTexture};
+use super::{block::{BlockFace, FaceTexture}, butils::{get_on_block, perform_op_on_block, UnsignedNumbers}};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Copy, Debug)]
 pub enum WorldBlock {
     Air(u8),
     Dirt(u8),
@@ -22,8 +22,8 @@ pub enum WorldBlock {
 }
 
 pub fn calculate_block_rotation(store: u8, face: BlockFace) -> BlockFace {
-    let rotation = store & 0b111; //take the first 3 bits for primary orientation axis
-    let secondary = (store >> 3) & 0b11; //take the 4th and 5th bits for secondary orientation axis
+    let rotation = store & 0b11100000; //take the first 3 bits for primary orientation axis
+    let secondary = (store) & 0b11; //take the 4th and 5th bits for secondary orientation axis TODO: FIRST OF ALL ARE YOU HIGH? THAT'S 9 BITS TOTAL FOR A U8? SECONDLY, WHY EVEN USE THIS?
 
     let uptarget = match rotation {
         0 => Vector3::new(0, 1, 0),
@@ -102,6 +102,23 @@ pub fn calculate_block_rotation(store: u8, face: BlockFace) -> BlockFace {
     newface
 }
 
+pub fn set_block_light(block: &mut WorldBlock, light: u8) {
+    perform_op_on_block(block, |currentval| {
+        //x here is the block's data. This returns the new lighting value to update
+        currentval & 0b11110000 | light
+    });
+}
+
+pub fn get_block_light(block: &WorldBlock) -> u8 {
+    let out = get_on_block(block, |currentval| {
+        currentval
+    });
+    
+    match out {
+        UnsignedNumbers::U8(x) => x & 0b00001111,
+    }
+}
+
 pub fn get_surface_texture_indices(block: &WorldBlock, face: BlockFace) -> (FaceTexture, FaceTexture, FaceTexture) {
     match block {
         //these shouldn't render at all actually
@@ -121,9 +138,6 @@ pub fn get_surface_texture_indices(block: &WorldBlock, face: BlockFace) -> (Face
         },
         WorldBlock::Sand(r) => {
             (get_indices_from_texture("sand").into(), 0.into(), 0.into())
-        },
-        _ => {
-            (get_indices_from_texture("dirt").into(), 0.into(), 0.into())
         }
     }
 }
@@ -135,6 +149,14 @@ pub fn has_partial_transparency(block: &WorldBlock) -> bool {
         _ => false
     }
 }
+
+pub fn is_unbreakable(block: &WorldBlock) -> bool {
+    match block {
+        WorldBlock::Air(_) => true,
+        _ => false
+    }
+}
+
 pub fn does_not_render(block: &WorldBlock) -> bool {
     match block {
         WorldBlock::Air(_) => true,

@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use wgpu::{FilterMode, Sampler, TextureView};
 
-use super::texture::{load_binary_sync, Texture};
+use super::texture::{generate_mipmaps, load_binary_sync, Texture};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -71,6 +71,10 @@ pub fn preload_textures(
     queue: &Arc<wgpu::Queue>,
     format: wgpu::TextureFormat
 ) {
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("Primary Encoder")
+    });
+
     let mut tex = env::current_dir().unwrap();
     tex.push("res/data/texture_manifest.json");
 
@@ -84,7 +88,7 @@ pub fn preload_textures(
         let mut path = env::current_dir().unwrap();
         path.push(Path::new(&format!("res/{}", definition.texture_path)));
         let texture = Arc::new(Texture::from_bytes(&definition.alias, device, queue, format, &load_binary_sync(path.to_str().unwrap()).unwrap(), definition.filter.into()));
-
+        generate_mipmaps(device, &mut encoder, &texture.texture, &format);
         lock.insert(definition.alias.clone(), LoadedTextureData {
             path: definition.texture_path,
             alias: definition.alias,
@@ -92,6 +96,7 @@ pub fn preload_textures(
             texture
         });
     }
+    queue.submit(std::iter::once(encoder.finish()));
 }
 
 pub fn initialize_load_textures(device: &Arc<wgpu::Device>, queue: &Arc<wgpu::Queue>, format: wgpu::TextureFormat) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
