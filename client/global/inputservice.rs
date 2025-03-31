@@ -9,12 +9,6 @@ pub enum MouseLockState {
     LockCenter 
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-enum InputActionQueue {
-    MouseVisible(bool),
-    MouseLockState(MouseLockState)
-}
-
 pub struct InputService {
     key_states: HashMap<KeyCode, bool>,
     mouse_states: HashMap<winit::event::MouseButton, bool>,
@@ -23,8 +17,6 @@ pub struct InputService {
     mouse_visible: bool,
     
     window: Arc<Window>,
-
-    fnqueue: Arc<RwLock<VecDeque<InputActionQueue>>>
 }
 
 impl InputService {
@@ -35,22 +27,17 @@ impl InputService {
             mouse_lock_state: MouseLockState::Free,
             mouse_visible: true,
             window,
-            fnqueue: Arc::new(RwLock::new(VecDeque::new()))
         }
     }
 
     pub fn set_mouse_visible(&mut self, visible: bool) {
-        self.fnqueue.write().unwrap().push_back(InputActionQueue::MouseVisible(visible));
-    }
-
-    fn iset_mouse_visible(&mut self, visible: bool) {
         self.window.set_cursor_visible(visible);
         self.mouse_visible = visible;
     }
 
     pub fn get_mouse_visible(&self) -> bool {self.mouse_visible}
 
-    fn iset_mouse_lock_state(&mut self, state: MouseLockState) {
+    pub fn set_mouse_lock_state(&mut self, state: MouseLockState) {
         match state {
             MouseLockState::Free => {
                 self.window.set_cursor_grab(winit::window::CursorGrabMode::None).unwrap();
@@ -65,18 +52,13 @@ impl InputService {
         self.mouse_lock_state = state;
     }
 
-    pub fn set_mouse_lock_state(&mut self, state: MouseLockState) {
-        self.fnqueue.write().unwrap().push_back(InputActionQueue::MouseLockState(state));
-    }
-
     pub fn get_mouse_lock_state(&self) -> MouseLockState {self.mouse_lock_state}
 
     /**
      * returns whether or not to permit camera motion with that input
-     * 
-     * possible reasons for returning false can be the MouseLockState being of the Free variant
+     * possible reasons for returning false can be the MouseLockState being of the Free or Contained variant
      */
-    pub async fn process_mouse_move(&mut self, delta: (f64, f64)) -> bool {
+    pub fn process_mouse_move(&mut self, delta: (f64, f64)) -> bool {
         match self.mouse_lock_state {
             MouseLockState::Free => {
                 false
@@ -91,25 +73,7 @@ impl InputService {
     }
 
     pub fn update(&mut self) {
-        let mut u = self.fnqueue.write().unwrap();
-    
-        let mut q = u.clone();
-
-        u.clear();
-        drop(u);
         
-        loop {
-            
-            let element = q.pop_front();
-            if element.is_none() {break};
-
-            let action = element.unwrap();
-
-            match action {
-                InputActionQueue::MouseLockState(s) => self.iset_mouse_lock_state(s),
-                InputActionQueue::MouseVisible(v) => self.iset_mouse_visible(v)
-            }
-        }
     }
 
     pub async fn process_mouse_input(&mut self, btn: &winit::event::MouseButton, state: &ElementState, consumed: bool) {
@@ -127,7 +91,7 @@ impl InputService {
         }
     }
 
-    pub async fn process_key_input(&mut self, k: &KeyEvent, consumed: bool) {
+    pub fn process_key_input(&mut self, k: &KeyEvent, consumed: bool) {
         match k.physical_key {
             winit::keyboard::PhysicalKey::Code(code) => {
                 match k.state {

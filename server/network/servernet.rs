@@ -7,28 +7,33 @@ use miniz_oxide::deflate::compress_to_vec;
 use pollster::FutureExt;
 use reqwest::{StatusCode, Url};
 use serde::Serialize;
-use shared::{network::containers::{AuthMessages, NetworkMessage, ServerToClientMessage}, world::chunkcompress::compress_chunk};
+use shared::{network::containers::{AuthMessages, AuthenticatedPacket, ClientToServerMessage, NetworkMessage, Packet, ServerToClientMessage, UnauthenticatedPacket}, world::chunkcompress::compress_chunk};
 
 const SERVER_HOST: &str = "http://localhost:8000";
 const SERVER_HOST_SRST: &str = "http://localhost:8000/servergetsessiontoken";
 
 #[derive(Serialize)]
 pub struct SRST {
-    expected_username: String,
-    callback: String
+    pub expected_username: String,
+    pub callback: String
 }
 
+#[derive(Clone)]
 pub struct Client {
-    endpoint: Endpoint,
-    username: String
+    pub endpoint: Endpoint,
+    pub username: String
+}
+
+pub enum ServerNetworkMessage {
+    ProvideInitialClientChunks(Client),
 }
 
 pub struct ServerNetwork {
-    handler: Arc<NodeHandler<()>>,
+    pub handler: Arc<NodeHandler<()>>,
     connected: HashMap<String, Endpoint>,
     task: NodeTask,
     id: ResourceId,
-    join_receiver: Receiver<(Endpoint, NetworkMessage)>,
+    join_receiver: Receiver<(Endpoint, Packet)>,
     queued_auth_responses: HashMap<String, (String, Endpoint)>,
     valid_tokens: HashMap<String, Client>,
 }
@@ -41,7 +46,7 @@ impl ServerNetwork {
 
         let handlerarc = Arc::new(handlerf);
 
-        let (send, recv) = channel::<(Endpoint, NetworkMessage)>();
+        let (send, recv) = channel::<(Endpoint, Packet)>();
 
         let handler = handlerarc.clone();
         let task = listener.for_each_async(move |event| match event.network() {
@@ -49,7 +54,7 @@ impl ServerNetwork {
             NetEvent::Accepted(_endpoint, _listener) => println!("Client connected"), // Tcp or Ws
             NetEvent::Message(endpoint, data) => {
                 //handler.network().send(endpoint, data);
-                let msg = bincode::deserialize::<NetworkMessage>(data);
+                let msg = bincode::deserialize::<Packet>(data);
 
                 if let Ok(message) = msg {
                     send.send((endpoint, message)).unwrap();
@@ -57,6 +62,7 @@ impl ServerNetwork {
                 else {
                     println!("Failed to deserialize message");
                 }
+                
                 
             },
             NetEvent::Disconnected(_endpoint) => println!("Client disconnected"), //Tcp or Ws
@@ -74,9 +80,16 @@ impl ServerNetwork {
         }
     }
 
-    async fn handle_auth_message(&mut self, endpoint: Endpoint, msg: AuthMessages) {
+    pub fn validate_packet(&self, packet: &AuthenticatedPacket) -> Option<Client> {
+        if let Some(user) = self.valid_tokens.get(&packet.token) {
+            return Some(user.clone())
+        }
+        None
+    }
+
+    async fn handle_auth_message(&mut self, endpoint: Endpoint, msg: AuthMessages) -> Option<ServerNetworkMessage> {
         match msg {
-            AuthMessages::AuthRequestUserCredentials(_) => {/* not for server */},
+            AuthMessages::AuthRequestUserCredentials(_) => None,
             AuthMessages::AuthConfirmedUser(username) => {
                 //if &endpoint.addr().ip().to_string() != SERVER_HOST {return};
                 //TODO: READD FOR PROD^^
@@ -87,6 +100,7 @@ impl ServerNetwork {
                     endpoint: qar.1.clone()
                 });
                 self.handler.network().send(qar.1, &bincode::serialize(&NetworkMessage::Auth(AuthMessages::JoinConfirmed)).unwrap());
+                None
             },
             AuthMessages::ClientRequestJoin(username) => {
                 let client = reqwest::Client::new();
@@ -100,31 +114,65 @@ impl ServerNetwork {
                     if res.status() == StatusCode::OK {
                         let code = res.text().await.unwrap();
                         self.queued_auth_responses.insert(username, (code.clone(), endpoint));
+                        println!("WILL GIVE");
                         self.handler.network().send(endpoint, &bincode::serialize(&NetworkMessage::Auth(AuthMessages::AuthRequestUserCredentials(code.clone()))).unwrap());
                         self.handler.network().send(endpoint, &bincode::serialize(&NetworkMessage::Auth(AuthMessages::GiveUserSessionToken(code))).unwrap());
+                    }
+                    else {
+                        println!("BAD STATUS");
                     }
                 }
                 else {
                     println!("AUTHENTICATION SERVER OFFLINE");
                 }
+                None
             },
-            AuthMessages::GiveUserSessionToken(_) => {/* not for server */},
-            AuthMessages::JoinConfirmed => {/* not for server */},
+            AuthMessages::GiveUserSessionToken(_) => None,
+            AuthMessages::JoinConfirmed => None,
         }
     }
 
-    pub async fn recv(&mut self) {
+    pub async fn handle_client_to_server_message(&self, client: Client, msg: ClientToServerMessage) -> Option<ServerNetworkMessage> {
+        match msg {
+            ClientToServerMessage::RequestInitialChunks => {
+                Some(ServerNetworkMessage::ProvideInitialClientChunks(client))
+            },
+            _ => None
+        }
+    }
+
+    pub async fn recv(&mut self) -> Vec<ServerNetworkMessage> {
+        let mut msgs: Vec<ServerNetworkMessage> = Vec::new();
         loop {
-            if let Ok((endpoint, message)) = self.join_receiver.try_recv() {
-                match message {
+            if let Ok((endpoint, packet)) = self.join_receiver.try_recv() {
+                let message: (Option<NetworkMessage>, Option<Client>) = match packet {
+                    Packet::Authenticated(p) => {
+                        if let Some(client) = self.validate_packet(&p) {
+                            (Some(p.data), Some(client))
+                        }
+                        else {
+                            (None, None)
+                        }
+                    }
+                    Packet::Unauthenticated(p) => (Some(p.data), None)
+                };
+                if message.0.is_none() {continue}; //unauthenticated message.
+                
+                let msg = message.0.unwrap();
+
+                match msg {
                     NetworkMessage::ServerToClient(msg) => {
-                        
+                        if message.1.is_none() {continue;}
                     },
                     NetworkMessage::Auth(msg) => {
                         self.handle_auth_message(endpoint, msg).await;
                     },
                     NetworkMessage::ClientToServer(msg) => {
-
+                        if message.1.is_none() {continue;}
+                        println!("RC SV {}", msg);
+                        if let Some(res) = self.handle_client_to_server_message(message.1.unwrap(), msg).await {
+                            msgs.push(res);
+                        }
                     },
                 }
             }
@@ -132,6 +180,7 @@ impl ServerNetwork {
                 break;
             }
         }
+        msgs
     }
     //199480(new) 7240448(old) 133944(newer) 14595(newest!!! zlib!!!)
     pub fn send_message_to(&self, userid: String, message: ServerToClientMessage) {

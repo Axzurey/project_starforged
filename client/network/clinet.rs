@@ -1,13 +1,12 @@
 use std::{collections::HashMap, io::Write, net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream, UdpSocket}, str::FromStr, sync::{mpsc::{channel, Receiver}, Arc, RwLock}, thread};
 
-use bincode::{deserialize, serialize};
-use flate2::{write::ZlibEncoder, Compression};
 use message_io::{network::{Endpoint, NetEvent, ResourceId, Transport}, node::{self, NodeHandler, NodeListener, NodeTask}};
-use miniz_oxide::deflate::compress_to_vec;
+use miniz_oxide::{deflate::compress_to_vec, inflate::decompress_to_vec};
+use nalgebra::Vector2;
 use pollster::FutureExt;
 use reqwest::{Method, Request, StatusCode, Url};
 use serde::Serialize;
-use shared::{network::containers::{AuthMessages, NetworkMessage, ServerToClientMessage}, world::chunkcompress::compress_chunk};
+use shared::{network::containers::{send_authenticated_message, send_unauthenticated_message, AuthMessages, ClientToServerMessage, NetworkMessage, ServerToClientMessage}, world::{chunk::Chunk, chunkcompress::{compress_chunk, decompress_chunk, CompressedChunk}}};
 
 const SERVER_HOST: &str = "http://localhost:8000";
 const SERVER_HOST_CAST: &str = "http://localhost:8000/clientauthsessiontoken";
@@ -25,16 +24,17 @@ pub struct Client {
 }
 
 pub struct CliNet {
-    handler: Arc<NodeHandler<()>>,
+    pub handler: Arc<NodeHandler<()>>,
     task: NodeTask,
-    endpoint: Endpoint,
+    pub endpoint: Endpoint,
     join_receiver: Receiver<(Endpoint, NetworkMessage)>,
     target_host: String,
-    session_token: Option<String>
+    pub session_token: Option<String>
 }
 
 pub enum ClientNetworkEvent {
     ConnectedToServer,
+    AcquiredChunk(Vector2<i32>, Arc<Chunk>),
     ServerToClient(ServerToClientMessage),
 }
 
@@ -52,7 +52,7 @@ impl CliNet {
 
         let task = listener.for_each_async(move |event| match event.network() {
             NetEvent::Connected(ep, _) => {
-                ha.network().send(ep, &bincode::serialize(&NetworkMessage::Auth(AuthMessages::ClientRequestJoin("phxie".to_string()))).unwrap());
+                send_unauthenticated_message(ha.network(), ep, NetworkMessage::Auth(AuthMessages::ClientRequestJoin("phxie".to_string())));
             },
             NetEvent::Accepted(_endpoint, _listener) => println!("connected"), // Tcp or Ws
             NetEvent::Message(endpoint, data) => {
@@ -86,6 +86,7 @@ impl CliNet {
                     println!("Wrong host 1 {} {}", endpoint.addr().to_string(), self.target_host);
                     return None;
                 }
+                self.session_token = Some(secret.clone());
                 let client = reqwest::Client::new();
                 let r = client.post(SERVER_HOST_CAST)
                     .body(serde_json::to_string(&CAST {
@@ -115,6 +116,7 @@ impl CliNet {
                 //     return;
                 // }
                 //TODO: READD FOR PROD^
+                println!("GOT TOKEN");
                 self.session_token = Some(token);
             },
             AuthMessages::JoinConfirmed => {
@@ -131,6 +133,19 @@ impl CliNet {
         None
     }
 
+    pub async fn handle_server_to_client_message(&mut self, endpoint: Endpoint, msg: ServerToClientMessage) -> Option<ClientNetworkEvent> {
+        match msg {
+            ServerToClientMessage::ChunkProvided(c) => {
+                let dec = decompress_to_vec(&c.1).unwrap();
+                let dc2 = bincode::deserialize::<CompressedChunk>(&dec).unwrap();
+                Some(ClientNetworkEvent::AcquiredChunk(c.0, decompress_chunk(dc2)))
+            },
+            ServerToClientMessage::ConcludeReceiveInitialChunks => {
+                Some(ClientNetworkEvent::ServerToClient(msg))
+            },
+        }
+    }
+
     pub async fn recv(&mut self) -> Vec<ClientNetworkEvent> {
         let mut events = Vec::new();
         loop {
@@ -142,7 +157,11 @@ impl CliNet {
                         }
                     },
                     NetworkMessage::ClientToServer(msg) => {/* nothing to see here */},
-                    NetworkMessage::ServerToClient(msg) => {/* todo */}
+                    NetworkMessage::ServerToClient(msg) => {
+                        if let Some(event) = self.handle_server_to_client_message(endpoint, msg).await {
+                            events.push(event);
+                        }
+                    }
                 }
             }
             else {
