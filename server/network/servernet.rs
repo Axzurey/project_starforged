@@ -25,7 +25,7 @@ pub struct Client {
 }
 
 pub enum ServerNetworkMessage {
-    ProvideInitialClientChunks(Client),
+    ClientToServer((Client, ClientToServerMessage))
 }
 
 pub struct ServerNetwork {
@@ -133,12 +133,7 @@ impl ServerNetwork {
     }
 
     pub async fn handle_client_to_server_message(&self, client: Client, msg: ClientToServerMessage) -> Option<ServerNetworkMessage> {
-        match msg {
-            ClientToServerMessage::RequestInitialChunks => {
-                Some(ServerNetworkMessage::ProvideInitialClientChunks(client))
-            },
-            _ => None
-        }
+        Some(ServerNetworkMessage::ClientToServer((client, msg)))
     }
 
     pub async fn recv(&mut self) -> Vec<ServerNetworkMessage> {

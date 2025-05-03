@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::{mpsc::{Receiver, Sender}, Arc}};
 
+use miniz_oxide::inflate::decompress_to_vec;
 use nalgebra::Vector2;
-use shared::{network::containers::{send_authenticated_message, ClientToServerMessage, NetworkMessage, ServerToClientMessage}, world::chunk::{xz_to_index, Chunk}};
+use shared::{network::containers::{send_authenticated_message, ClientToServerMessage, NetworkMessage, ServerToClientMessage}, world::{chunk::{xz_to_index, Chunk}, chunkcompress::{decompress_chunk, CompressedChunk}}};
 use stopwatch::Stopwatch;
 
 use crate::{network::clinet::{CliNet, ClientNetworkEvent}, renderer::renderctx::Renderctx, world::chunkdraw::ChunkDraw};
@@ -49,12 +50,14 @@ impl EventHandler {
                     // }
                 },
                 ClientNetworkEvent::ConnectedToServer => {
+                    println!("Connected");
                     //grab chunks from server.
                     send_authenticated_message(network.handler.network(), network.endpoint, network.session_token.clone().unwrap(), NetworkMessage::ClientToServer(ClientToServerMessage::RequestInitialChunks));
                 },
                 ClientNetworkEvent::ServerToClient(stc) => {
                     match stc {
                         ServerToClientMessage::ConcludeReceiveInitialChunks => {
+                            println!("Got initial Chunks");
                             let nh = HashMap::from_iter(gs.chunk_manager.chunks.iter().map(|(k, v)| {
                                 (*k, v.chunk.clone())
                             }));
@@ -66,8 +69,15 @@ impl EventHandler {
                                 }
                             }
                         },
-                        _ => {
-
+                        ServerToClientMessage::ChunkProvided((pos, data)) => {
+                            let dec = decompress_to_vec(&data).unwrap();
+                                
+                            let deser = bincode::deserialize::<CompressedChunk>(&dec).unwrap();
+                            
+                            let chunk = decompress_chunk(deser);
+                            
+                            gs.chunk_manager.chunks.insert(xz_to_index(pos.x, pos.y), ChunkDraw::new(chunk));
+                            println!("Added Chunk");
                         }
                     }
                 }

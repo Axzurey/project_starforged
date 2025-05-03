@@ -18,6 +18,7 @@ pub async fn main() {
     let mut chunkmanager = ServerChunkManager::new();
 
     chunkmanager.generate_range_inclusive(-10, -10, 10, 10);
+    
     loop {
         sleep(Duration::from_millis(33)); //1000ms/30ticks ~= 33
         let events = servernetwork.recv().await;

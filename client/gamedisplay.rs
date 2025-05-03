@@ -65,7 +65,7 @@ impl ApplicationHandler for GameDisplay<'_> {
                 
                 let gs = self.globalstate.as_mut().unwrap();
                 gs.camera.controller.process_mouse_input(delta.0, delta.1);
-                //gs.input_service.process_mouse_move(delta);
+                gs.input_service.process_mouse_move(delta);
             },
             _ => {}
         }
@@ -105,21 +105,25 @@ impl ApplicationHandler for GameDisplay<'_> {
             WindowEvent::RedrawRequested => {
 
                 let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-                let dt = ((now as f64) - (self.last_frame as f64) / 1000.0) as f32;
+                let dt = (((now as f64) - (self.last_frame as f64)) / 1000.0) as f32;
+                self.last_frame = now;
                 
                 let gamewin = self.gamewindow.as_mut().unwrap();
-
+                let net = self.network.as_mut().unwrap();
+                
                 let gs = self.globalstate.as_mut().unwrap();
                 gs.input_service.update();
                 
+                gs.on_world_tick(net, dt);
+                
                 gamewin.render(dt, gs);
-                let net = self.network.as_mut().unwrap();
 
                 let network_events = net.recv().block_on();
                 self.event_handler.as_mut().unwrap().handle_network_events(&gamewin.device, &gamewin.queue, gs, net, self.chunkmesher.as_mut().unwrap(), network_events);
 
                 for _ in 0..16 {
                     if let Ok((x, z, y, buff)) = self.chunkmesher.as_ref().unwrap().1.try_recv() {
+                        println!("Meshed chunk");
                         let index = xz_to_index(x, z);
                         let chunkdraw = self.globalstate.as_mut().unwrap().chunk_manager.chunks.get_mut(&index).unwrap();
                         

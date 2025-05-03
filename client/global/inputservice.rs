@@ -9,6 +9,15 @@ pub enum MouseLockState {
     LockCenter 
 }
 
+pub enum InputEvent {
+    MouseButtonClicked(winit::event::MouseButton),
+    MouseButtonDown(winit::event::MouseButton),
+    MouseButtonUp(winit::event::MouseButton),
+    KeyClicked(KeyCode),
+    KeyDown(KeyCode),
+    KeyUp(KeyCode),
+}
+
 pub struct InputService {
     key_states: HashMap<KeyCode, bool>,
     mouse_states: HashMap<winit::event::MouseButton, bool>,
@@ -17,6 +26,7 @@ pub struct InputService {
     mouse_visible: bool,
     
     window: Arc<Window>,
+    events: Vec<InputEvent>
 }
 
 impl InputService {
@@ -27,7 +37,12 @@ impl InputService {
             mouse_lock_state: MouseLockState::Free,
             mouse_visible: true,
             window,
+            events: Vec::new()
         }
+    }
+    
+    pub fn consume_events(&mut self) -> Vec<InputEvent> {
+        self.events.drain(..).collect()
     }
 
     pub fn set_mouse_visible(&mut self, visible: bool) {
@@ -79,13 +94,16 @@ impl InputService {
     pub async fn process_mouse_input(&mut self, btn: &winit::event::MouseButton, state: &ElementState, consumed: bool) {
         match state {
             ElementState::Pressed => {
-                if !self.mouse_states.contains_key(&btn) {
+                if !self.mouse_states.contains_key(btn) {
                     self.mouse_states.insert(*btn, true);
+                    self.events.push(InputEvent::MouseButtonDown(*btn));
                 }
             },
             ElementState::Released => {
-                if self.mouse_states.contains_key(&btn) {
+                if self.mouse_states.contains_key(btn) {
                     self.mouse_states.remove(&btn);
+                    self.events.push(InputEvent::MouseButtonClicked(*btn));
+                    self.events.push(InputEvent::MouseButtonUp(*btn));
                 }
             },
         }
@@ -98,11 +116,14 @@ impl InputService {
                     winit::event::ElementState::Pressed => {
                         if !self.key_states.contains_key(&code) {
                             self.key_states.insert(code, true);
+                            self.events.push(InputEvent::KeyDown(code));
                         }
                     },
                     winit::event::ElementState::Released => {
                         if self.key_states.contains_key(&code) {
                             self.key_states.remove(&code);
+                            self.events.push(InputEvent::KeyClicked(code));
+                            self.events.push(InputEvent::KeyUp(code));
                         }
                     },
                 }
